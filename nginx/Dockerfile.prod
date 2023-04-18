@@ -1,0 +1,5 @@
+FROM nginx:alpine
+
+RUN apk add certbot certbot-nginx
+ADD crontab.txt /crontab.txt
+RUN crontab /crontab.txt
