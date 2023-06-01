@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import { UserContext } from '@/context/UserContext';
 import FooterComponent from "@/components/footer"
 import LoginComponent from "@/components/login"
+import IndexUser from '@/components/indexUser';
 
 export default function Home() {
 
@@ -13,9 +14,8 @@ export default function Home() {
 
     // Replace login section with user info if logged in instead of redirect?
     // Continue as {USERNAME} >
-    if (userData.username) {
-        router.push('/');
-    }
+    var userComponent = userData.username ? <IndexUser /> : <LoginComponent />
+
 
     return (
         <main>
@@ -30,7 +30,7 @@ export default function Home() {
                                 Retain your data online securely yourself.
                             </p>
                             <div className="mt-8 flex gap-x-4 sm:justify-center">
-                                <LoginComponent />
+                                {userComponent}
                             </div>
                         </div>
                     </div>

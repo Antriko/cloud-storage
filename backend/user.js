@@ -85,6 +85,7 @@ router.get('/logout', (req, res) => {
 router.get('/verify', authUser, async(req, res) => {   // heartbeat
     let user = mongoose.model('User', userSchema)
     var doc = await user.findOne({_id: new mongoose.Types.ObjectId(req.session.userInfo.id)})
+    console.log('verify')
     if (!doc.data){doc.data = {}};
     doc.save();
     res.status(200).send({
