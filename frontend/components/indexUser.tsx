@@ -25,8 +25,8 @@ export default function IndexUser() {
                     <h1 className="text-xl leading-tight tracking-tight">
                         Welcome back <span className="font-bold">{userData.username}</span>
                     </h1>
-                    <button type="submit" className="w-full text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Continue</button>
-                    <button type="submit" className="w-full text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 text-center" onClick={Signout}>Log off</button>
+                    <Link type="button" href="files" className="btn w-full text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Continue</Link>
+                    <button className="w-full text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 text-center" onClick={Signout}>Log off</button>
                 </div>
             </div>
         </div>
