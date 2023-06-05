@@ -39,6 +39,8 @@ services:
       DB_DATABASE: "${DB_DATABASE}"
       JWT_SECRET: "${JWT_SECRET}"
       ENC_PASS: "${ENC_PASS}"
+      APP_USER: "${APP_USER}"
+      APP_PASS: "${APP_PASS}"
       DB_SERVICE_NAME: "db"
     
   db:

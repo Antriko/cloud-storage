@@ -3,66 +3,70 @@ var router = express.Router();
 const mongoose = require('mongoose');
 var fs = require('fs');
 var path = require('path');
-var mime = require('mime-types')
 var authUser = require('./authUser.js');
+var mime = require('mime-types')
+
+var fastFolderSize = require('fast-folder-size')
+var { promisify } = require('util')
+var fastFolderSizeAsync = promisify(fastFolderSize)
 
 var crypto = require('crypto');
 
 var multer  = require('multer');  // middleware for file uploading (multipart/form-data)
-// var storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//         fs.mkdirSync(path.join(__dirname, 'files', 'tmp'), {recursive: true})   // create tmp file if not there
-//         imgPath = path.join(__dirname, 'files', 'tmp').toString()
-//         cb(null, imgPath)
-//     },
-//     filename: (req, file, cb) => {
-//         cb(null, file.originalname);
-//     }
-// })
-// var upload = multer({ storage: storage });  // where files will be held
 
 const upload = multer({ storage: multer.memoryStorage() })
 
 router.post('/upload', authUser, upload.array('files'), async(req, res) => {
-    // console.log(req.body, req.files, req.session)
-    fs.mkdirSync(path.join(__dirname, 'files', req.session.userInfo.id, req.body.directory), {recursive: true})
-
+    fs.mkdirSync(path.join(__dirname, 'files', req.body.directory), {recursive: true})
     req.files.map(file => {
-
-
-        filePath = path.join(__dirname, 'files', req.session.userInfo.id, req.body.directory, file.originalname)
+        filePath = path.join(__dirname, 'files', req.body.directory, file.originalname)
         fs.writeFileSync(filePath, encrypt(file.buffer))
-
-        // fs.renameSync(file.path, path.join(__dirname, 'files', req.session.userInfo.id, req.body.directory, file.originalname))
-        // Remove old file
-
         // Create entry log of uploaded time within database - Same for modifications
     })
     console.log('Uploaded', req.session.userInfo.id)
     res.sendStatus(200);
-
 })
 
 router.get('/files', authUser, async(req, res) => {
-    // {
-    //     currentDir: 'currentDir',
-    //     files: [{
-    //         name: 'name',
-    //         size: 'size',
-    //         lastModified: 'last modified'
-    //     }],
-    //     directory: [{
-    //         dirName: 'dirName',
-    //         size: 'size',
-    //         lastModified: 'last modified'
-    //     }]
-    // }
+    filePath = path.join(__dirname, 'files', req.body.directory)
+    if (!fs.existsSync(filePath)) {
+        fs.mkdirSync(path.join(__dirname, 'files'))
+        res.sendStatus(404)
+        return;
+    }
+    dirFiles = fs.readdirSync(filePath)
+
+    var files = []
+    var directory = []
+
+    for (var file of dirFiles) {
+        filePath = path.join(__dirname, 'files', req.body.directory, file)
+        if (fs.lstatSync(filePath).isDirectory()) {
+            size = await fastFolderSizeAsync(filePath)
+            directory.push({
+                name: file,
+                size: size,
+            })
+        } else {
+            files.push({
+                name: file,
+                size: fs.lstatSync(filePath).size,
+            })
+        }
+    }
+    dirInfo = {
+        currentDir: req.body.directory,
+        files: files,
+        directory: directory,
+    }
+    console.log(dirInfo)
+    res.status(200).send(dirInfo)
 })
 
 var stream = require('stream');
 router.get('/download', authUser, async(req, res) => {
     console.log('body', req.body)
-    var file = fs.readFileSync(path.join(__dirname, 'files', req.session.userInfo.id, req.body.directory, req.body.filename))
+    var file = fs.readFileSync(path.join(__dirname, 'files', req.body.directory, req.body.filename))
     var decrypted = decrypt(file)
 
     var readStream = new stream.PassThrough();
