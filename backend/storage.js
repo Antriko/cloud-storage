@@ -17,6 +17,11 @@ var multer  = require('multer');  // middleware for file uploading (multipart/fo
 const upload = multer({ storage: multer.memoryStorage() })
 
 router.post('/upload', authUser, upload.array('files'), async(req, res) => {
+    console.log(req.body)
+    if(!req.files) {
+        res.sendStatus(201);
+        return;
+    }
     fs.mkdirSync(path.join(__dirname, 'files', req.body.directory), {recursive: true})
     req.files.map(file => {
         filePath = path.join(__dirname, 'files', req.body.directory, file.originalname)
@@ -24,7 +29,7 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
         // Create entry log of uploaded time within database - Same for modifications
     })
     console.log('Uploaded', req.session.userInfo.id)
-    res.sendStatus(200);
+    res.status(200).send({message: 'Files uploaded'});
 })
 
 router.post('/files', authUser, async(req, res) => {
@@ -64,15 +69,15 @@ router.post('/files', authUser, async(req, res) => {
 })
 
 var stream = require('stream');
-router.get('/download', authUser, async(req, res) => {
+router.post('/download', authUser, async(req, res) => {
     console.log('body', req.body)
     var file = fs.readFileSync(path.join(__dirname, 'files', req.body.directory, req.body.filename))
     var decrypted = decrypt(file)
 
     var readStream = new stream.PassThrough();
     readStream.end(decrypted);
-    res.set('Content-disposition', 'attachment; filename=' + req.body.filename);
     res.set('Content-Type', mime.lookup(req.body.filename));
+    res.set('Content-Disposition', `attachment; filename='${req.body.filename}'`);
     readStream.pipe(res);
 })
 

@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useState, useCallback } from "react"
 import { UserContext } from '@/context/UserContext';
 import { Folder } from 'react-bootstrap-icons'
 import IconByName from "@/components/icon";
+import { useDropzone } from 'react-dropzone'
 
 export default function Files() {
     const [files, setFiles] = useState({
@@ -11,6 +12,13 @@ export default function Files() {
     })
     const [currentDir, setCurrentDir] = useState<string[]>(['/'])
     const userData = useContext(UserContext);
+    const [selected, setSelected] = useState()
+
+    const onDrop = useCallback((files: any) => {
+        // Do something with the files
+        console.log(files)
+      }, [])
+    const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
 
     useEffect(() => {
         async function fetchData() {
@@ -57,6 +65,10 @@ export default function Files() {
         return `${count} ${rank}`;
     }
 
+    const changeFile = (event: any) => {
+        console.log(event.currentTarget)
+    } 
+
     return(
         <div className='flex flex-col w-full'>
             {/* <button onClick={goBack} className="w-50 text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">Go back</button> */}
@@ -71,6 +83,12 @@ export default function Files() {
             </div>
 
             <div className='flex flex-wrap px-2'>
+                <div className="w-40">
+                    <div className="w-[95%] text-white bg-zinc-900 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
+                                    <Folder className="w-full h-3/4" />
+                                    Directories
+                            </div>
+                        </div>
                 {files.directory.map(dir => {
                     return(
                         <div className="w-40" key={dir['name']} >
@@ -83,8 +101,8 @@ export default function Files() {
                     )
                 })}
             </div>
-            <div className='flex flex-wrap px-2'>
-                <div className='flex flex-wrap w-full bg-zinc-900 font-medium rounded-lg text-lg py-3'>
+            <div className='flex flex-wrap px-2' {...getRootProps()}>
+                <div className='flex flex-wrap w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
                     <div className="w-full flex flex-wrap pl-5">
                         <div className='w-2/4'>
                             Name
@@ -101,8 +119,8 @@ export default function Files() {
                     </div> */}
                     {files.files.map(file => {
                         return(
-                            <div key={file['name']} className='flex w-full hover:bg-zinc-950 pl-5 py-2'>
-                                <div className='w-2/4 flex flex-wrap align-middle'>
+                            <button key={file['name']} onClick={changeFile} value={file['name']} className='flex w-full hover:bg-zinc-950 pl-5 py-2'>
+                                <div className='w-2/4 flex flex-wrap align-middle text-left'>
                                     <div className="w-1/12">
                                         <IconByName name={file['name']} className="w-full h-full"/>
                                     </div>
@@ -111,16 +129,32 @@ export default function Files() {
                                     </div>
                                 </div>
                                 {/* Hidden if sm: */}
-                                <div className='w-1/4 flex flex-col justify-center'> 
+                                <div className='w-1/4 flex flex-col justify-center text-left'> 
                                     {/* 09/06/2023 14:12 PM - EXAMPLE*/}
                                     TODO
                                 </div>
-                                <div className='w-1/4 flex flex-col justify-center'>
+                                <div className='w-1/4 flex flex-col justify-center text-left'>
                                     {getSize(file['size'])}
                                 </div>
-                            </div>
+                            </button>
                         )
                     })}
+
+                    <div className='flex w-full pl-5 py-5 hover:bg-zinc-950'>
+                        <input {...getInputProps()} className='w-full' />
+                        {
+                            isDragActive ?
+                            <p>Drop the files here ...</p> :
+                            <p>Drag and drop some files here, or click to select files</p>
+                        }
+                    </div>
+                </div>
+                <div className='flex flex-wrap w-2/5'>
+                    <div className='flex flex-wrap w-full bg-zinc-900 font-medium rounded-lg text-lg py-3 px-5 ml-2'>
+                        <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
+                            Select a file
+                        </div>
+                    </div>
                 </div>
             </div>
             <br/>{JSON.stringify(files)}
