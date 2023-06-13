@@ -27,11 +27,11 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
     res.sendStatus(200);
 })
 
-router.get('/files', authUser, async(req, res) => {
+router.post('/files', authUser, async(req, res) => {
     filePath = path.join(__dirname, 'files', req.body.directory)
+
     if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(path.join(__dirname, 'files'))
-        res.sendStatus(404)
+        res.sendStatus(201)
         return;
     }
     dirFiles = fs.readdirSync(filePath)
