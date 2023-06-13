@@ -63,7 +63,6 @@ const IconByName = ({name, className}: IconProps) => {
     var regex = /(?:\.([^.]+))?$/
     // @ts-ignore
     var ext = regex.exec(name)[1]
-    console.log('ext', ext, name, className)
     switch (ext) {
         case 'aac':
             return <FiletypeAac className={className} />;

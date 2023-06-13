@@ -1,8 +1,12 @@
-import { useContext, useEffect, useState, useCallback } from "react"
+import React, { useContext, useEffect, useState, useCallback } from "react"
 import { UserContext } from '@/context/UserContext';
 import { Folder } from 'react-bootstrap-icons'
 import IconByName from "@/components/icon";
 import { useDropzone } from 'react-dropzone'
+
+function classNames(...classes: string[]) {
+    return classes.filter(Boolean).join(' ')
+}
 
 export default function Files() {
     const [files, setFiles] = useState({
@@ -11,13 +15,33 @@ export default function Files() {
         directory: [],
     })
     const [currentDir, setCurrentDir] = useState<string[]>(['/'])
+    const [reload, setReload] = useState(false)
     const userData = useContext(UserContext);
-    const [selected, setSelected] = useState()
+    const [selected, setSelected] = useState<any>({selected: null, data: {}})
 
     const onDrop = useCallback((files: any) => {
-        // Do something with the files
-        console.log(files)
-      }, [])
+        async function uploadFiles() {
+            var formData = new FormData();
+
+            files.forEach((file: any) => {
+                formData.append('files', file)
+            });
+            formData.append('directory', currentDir.join(''))
+            console.log(formData.getAll('files'))
+            const options = {
+                method: 'POST',
+                body: formData
+            }
+            // Uploading status perhaps?
+            const response = await fetch('/api/storage/upload', options)
+            const respData = await response.json();
+            console.log(respData)
+            if (response.status === 200) {
+                setReload(reload ? false : true)
+            }
+        }
+        uploadFiles();
+    }, [currentDir, reload])
     const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
 
     useEffect(() => {
@@ -40,7 +64,10 @@ export default function Files() {
             }
         }
         fetchData();
-    }, [currentDir]);
+    }, [currentDir, reload]);
+    
+
+
 
     const changeDir = (event: any) => {
         setCurrentDir(currentDir.concat(`${event.currentTarget.value}/`))
@@ -66,8 +93,30 @@ export default function Files() {
     }
 
     const changeFile = (event: any) => {
+        setSelected({selected: event.currentTarget.id})
         console.log(event.currentTarget)
-    } 
+    }
+    const downloadFile = () => {
+        async function download() {
+            const body = {
+                directory: currentDir.join(''),
+                filename: selected.selected,
+            }
+            const options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(body)
+            }
+
+            const response = await fetch('/api/storage/download', options)
+            console.log(response.arrayBuffer)
+            response.headers.forEach(function(val, key) { console.log(key + ' -> ' + val); });
+
+        }
+        download();
+    }
 
     return(
         <div className='flex flex-col w-full'>
@@ -101,8 +150,8 @@ export default function Files() {
                     )
                 })}
             </div>
-            <div className='flex flex-wrap px-2' {...getRootProps()}>
-                <div className='flex flex-wrap w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
+            <div className='flex flex-wrap px-2'>
+                <div className='flex flex-col w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
                     <div className="w-full flex flex-wrap pl-5">
                         <div className='w-2/4'>
                             Name
@@ -114,12 +163,10 @@ export default function Files() {
                             Size
                         </div>
                     </div>
-                    {/* <div className='flex w-full hover:bg-zinc-950 pl-5 py-2'>
-                        Empty...
-                    </div> */}
                     {files.files.map(file => {
+                        var select = selected.selected == file['name'] ? 'bg-zinc-950' : ''
                         return(
-                            <button key={file['name']} onClick={changeFile} value={file['name']} className='flex w-full hover:bg-zinc-950 pl-5 py-2'>
+                            <button id={file['name']} key={file['name']} onClick={changeFile} value={file['name']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2')}>
                                 <div className='w-2/4 flex flex-wrap align-middle text-left'>
                                     <div className="w-1/12">
                                         <IconByName name={file['name']} className="w-full h-full"/>
@@ -140,25 +187,49 @@ export default function Files() {
                         )
                     })}
 
-                    <div className='flex w-full pl-5 py-5 hover:bg-zinc-950'>
-                        <input {...getInputProps()} className='w-full' />
-                        {
-                            isDragActive ?
-                            <p>Drop the files here ...</p> :
-                            <p>Drag and drop some files here, or click to select files</p>
-                        }
+                    <div {...getRootProps()} className='flex mt-auto w-full p-5'>
+                        <div className='flex w-full border border-white border-dashed px-4 py-3 hover:bg-zinc-950 rounded-lg'>
+                            <input {...getInputProps()} />
+                            {
+                                isDragActive ?
+                                <p>Drop the files here...</p> :
+                                <p>Drag and drop files here, or click to select files</p>
+                            }
+                        </div>
                     </div>
+
                 </div>
                 <div className='flex flex-wrap w-2/5'>
-                    <div className='flex flex-wrap w-full bg-zinc-900 font-medium rounded-lg text-lg py-3 px-5 ml-2'>
-                        <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
-                            Select a file
-                        </div>
+                    <div className='flex flex-col w-full bg-zinc-900 font-medium rounded-lg text-lg py-3 px-5 ml-2'>
+                        { !selected.selected ? 
+                            <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
+                                Select a file
+                            </div> : 
+                            <React.Fragment>
+                                <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
+                                    {selected.selected}
+                                </div>
+                                {/* MORE INFORMATION */}
+                                <div className='flex flex-box w-full py-5 mt-auto'>
+                                    <div className='w-3/5 px-2'>
+                                        <button onClick={downloadFile} className='w-full text-white bg-zinc-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                            Download
+                                        </button>
+                                    </div>
+                                    <div className='w-2/5 px-2'>
+                                        <button className='w-full text-white bg-rose-900 hover:bg-rose-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        }
                     </div>
                 </div>
             </div>
             <br/>{JSON.stringify(files)}
             <br/>{JSON.stringify(currentDir)}
+            <br/>{JSON.stringify(selected)}
         </div>
     )
 }
