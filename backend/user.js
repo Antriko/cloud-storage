@@ -17,41 +17,38 @@ var userSchema = new mongoose.Schema({
 (async () => {
     var user = mongoose.model('User', userSchema);  // Get database
     var doc = await user.findOne({username: process.env.APP_USER}) // Find if username exists
-    if(!doc) {     // First time user creation
-        var id = new mongoose.Types.ObjectId();
-        bcrypt.hash(process.env.APP_PASS, saltRounds)  // Encrypt password
-        .then(hashedPass => {
-            user.create({
-                _id: id,
-                username: process.env.APP_USER,
-                password: hashedPass,
-            })
-        })
-    }
+    if(doc) return // User already created
+
+    // First time user creation
+    var id = new mongoose.Types.ObjectId();
+    hashed = bcrypt.hash(process.env.APP_PASS, saltRounds)  // Encrypt password
+    user.create({
+        _id: id,
+        username: process.env.APP_USER,
+        password: hashed,
+    })
 })()
 
 router.post('/login', async(req, res) => {
-    console.log('Login')
-    console.log(req.body, req.session)
-
     let user = mongoose.model('User', userSchema);  // Get database
     var doc = await user.findOne({username: req.body.username});
-
     if (!doc) { // No user found
         res.status(201).send({text: "No user found"})
         return;
     }
 
-    console.log(doc)
-    var compare = bcrypt.compare(req.body.password, doc.password)
-    if (!compare) res.status(201).send({text: "Incorrect password"}) // Incorrect password
+    var compare = await bcrypt.compare(req.body.password, doc.password)
+    if (!compare) { // Incorrect password
+        res.status(201).send({text: "Incorrect password"})
+        return;
+    } 
 
     // Success, send session
     req.session.userInfo = {
         id: doc.id, 
         username: req.body.username
     };
-    res.status(200).send({username: doc.username})
+    res.sendStatus(200)
 })
 
 router.get('/logout', (req, res) => {
@@ -69,8 +66,7 @@ router.get('/verify', authUser, async(req, res) => {   // heartbeat
     res.status(200).send({
         username: req.session.userInfo.username, 
         data: doc.data
-    }); // add more if needed - useEffect
+    });
 })
 
-console.log("User backend")
 module.exports = router;

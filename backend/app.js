@@ -10,13 +10,14 @@ app.use(express.urlencoded({ extended: true }));
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', true);
 connectionString = `mongodb://${process.env.DB_SERVICE_NAME}:27017/${process.env.DB_DATABASE}`
+
 mongoose.connect(connectionString, {
     authSource: "admin",
     user: process.env.DB_USERNAME,
     pass: process.env.DB_PASSWORD
 })
 .then(() => console.log("Connected to database"))
-.catch(e => console.log("ERROR?", e))
+.catch(e => console.log("ERROR", e))
 
 // parse and session
 const session = require('express-session');
@@ -40,7 +41,6 @@ app.use('/api/user', user)
 var storage = require('./storage.js');
 app.use('/api/storage', storage)
 
-
 const PORT = 3010;
 app.listen(PORT);
-console.log("Backend started")
+console.log("Backend started - Hot reloading example")

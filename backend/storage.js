@@ -5,6 +5,7 @@ var fs = require('fs');
 var path = require('path');
 var authUser = require('./authUser.js');
 var mime = require('mime-types')
+var contentDisposition = require('content-disposition')
 
 var fastFolderSize = require('fast-folder-size')
 var { promisify } = require('util')
@@ -17,7 +18,7 @@ var multer  = require('multer');  // middleware for file uploading (multipart/fo
 const upload = multer({ storage: multer.memoryStorage() })
 
 router.post('/upload', authUser, upload.array('files'), async(req, res) => {
-    console.log(req.body)
+    console.log(req.files, req.body)
     if(!req.files) {
         res.sendStatus(201);
         return;
@@ -28,7 +29,6 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
         fs.writeFileSync(filePath, encrypt(file.buffer))
         // Create entry log of uploaded time within database - Same for modifications
     })
-    console.log('Uploaded', req.session.userInfo.id)
     res.status(200).send({message: 'Files uploaded'});
 })
 
@@ -69,21 +69,25 @@ router.post('/files', authUser, async(req, res) => {
 })
 
 var stream = require('stream');
-router.post('/download', authUser, async(req, res) => {
+router.get('/download', authUser, async(req, res) => {
     console.log('body', req.body)
+    if (!req.body.filename) {
+        res.sendStatus(201)
+        return
+    }
     var file = fs.readFileSync(path.join(__dirname, 'files', req.body.directory, req.body.filename))
     var decrypted = decrypt(file)
 
     var readStream = new stream.PassThrough();
     readStream.end(decrypted);
-    res.set('Content-Type', mime.lookup(req.body.filename));
-    res.set('Content-Disposition', `attachment; filename='${req.body.filename}'`);
+    res.setHeader('Content-Type', mime.lookup(req.body.filename));
+    res.setHeader('Content-Disposition', contentDisposition(req.body.filename));
     readStream.pipe(res);
 })
 
 // https://nodejs.org/api/crypto.html
 const algorithm = 'aes-256-cbc'
-const key = crypto.scryptSync(process.env.ENC_PASS, 'salt', 32) // MOVE TO .ENV
+const key = crypto.scryptSync(process.env.ENC_PASS, 'salt', 32)
 const iv = Buffer.alloc(16, 0)
 
 const encrypt = (buffer) => {
