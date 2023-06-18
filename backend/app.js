@@ -20,8 +20,6 @@ mongoose.set('strictQuery', true);
     .then(() => console.log("Connected to database"))
     .catch(e => console.log("ERROR", e))
 
-    console.log('aaa')
-
     // parse and session
     const session = require('express-session');
     const MongoStore = require('connect-mongo');

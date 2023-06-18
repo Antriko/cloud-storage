@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useState, useCallback } from "react"
 import { UserContext } from '@/context/UserContext';
-import { Folder } from 'react-bootstrap-icons'
+import { Folder, FolderPlus, Diagram2Fill, Search, House, Download, Trash } from 'react-bootstrap-icons'
 import IconByName from "@/components/icon";
 import { useDropzone } from 'react-dropzone'
+import Link from "next/link";
 
 function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(' ')
@@ -17,7 +18,15 @@ export default function Files() {
     const [currentDir, setCurrentDir] = useState<string[]>(['/'])
     const [reload, setReload] = useState(false)
     const userData = useContext(UserContext);
-    const [selected, setSelected] = useState<any>({selected: null, data: {}})
+    const [selected, setSelected] = useState<any>({
+        selected: null, 
+        data: {
+            description: null,
+            lastModified: null,
+            uploadedBy: null,
+            size: null,
+            path: null,
+        }})
 
     const onDrop = useCallback((files: any) => {
         async function uploadFiles() {
@@ -77,12 +86,12 @@ export default function Files() {
         setCurrentDir(currentDir.slice(0, parseInt(event.currentTarget.value) + 1))
     }
 
-    const goBack = () => {
-        setCurrentDir(currentDir.length == 1 ? currentDir : currentDir.slice(0, -1))
+    const newDirectory = () => {
+        
     }
 
-    const shorten = (text: string, limit: number) => {
-        return text.length >= limit ? `${text.slice(0, limit-3)}...` : text
+    const searchFunction = (event: any) => {
+        console.log(event.currentTarget.value)
     }
     
     const getSize = (size: number) => {
@@ -93,7 +102,8 @@ export default function Files() {
     }
 
     const changeFile = (event: any) => {
-        setSelected({selected: event.currentTarget.id})
+        setSelected({selected: event.currentTarget.id, data: selected.data})
+        // GET MORE FILE INFO - ADD TO DATA
         console.log(event.currentTarget)
     }
     const downloadFile = () => {
@@ -122,22 +132,42 @@ export default function Files() {
         <div className='flex flex-col w-full'>
             {/* <button onClick={goBack} className="w-50 text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">Go back</button> */}
             <div className='flex flex-wrap px-2 bg-zinc-900'>
-                {currentDir.map((dir, itt) => {
-                    return(
-                        <button key={dir} onClick={changeBackDir} value={itt} 
+                <div className="w-3/5">
+                    {currentDir.map((dir, itt) => {
+                        return(
+                            <button key={dir} onClick={changeBackDir} value={itt} 
                             className="w-50 text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 mx-0.5 text-center">
-                                {dir}
-                        </button>)
-                })}
+                                    {dir}
+                            </button>)
+                    })}
+                </div>
+                <div className="relative flex flex-box w-2/5">
+                    <div className="flex flex-box w-10/12">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
+                            <Search className="w-5 h-5 text-gray-400" />
+                        </div>
+                        <input type="search" className="block w-full rounded-lg my-2 ml-2 pr-4 pl-10 bg-zinc-800" onChange={searchFunction} placeholder="Search..." />
+                    </div>
+                    <div className="flex flex-box ml-auto mr-auto w-1/12">
+                        <Link href={'/'} className="relative w-full text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 pt-2.5 my-2 mx-0.5 text-center">
+                            <House className="absolute w-full h-3/4 inset-y-1 left-0 text-gray-400"/>
+                        </Link>
+                    </div>
+                </div>
             </div>
 
             <div className='flex flex-wrap px-2'>
                 <div className="w-40">
                     <div className="w-[95%] text-white bg-zinc-900 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
-                                    <Folder className="w-full h-3/4" />
-                                    Directories
-                            </div>
-                        </div>
+                        <Diagram2Fill className="w-full h-3/4" />
+                        Directories
+                    </div>
+                </div>
+                <div className="w-20 flex flex-col justify-end">
+                    <button onClick={newDirectory} className="w-[90%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm p-5 my-2">
+                        <FolderPlus className="w-full h-full" />
+                    </button>
+                </div>
                 {files.directory.map(dir => {
                     return(
                         <div className="w-40" key={dir['name']} >
@@ -154,41 +184,34 @@ export default function Files() {
             </div>
             <div className='flex flex-wrap px-2'>
                 <div className='flex flex-col w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
-                    <div className="w-full flex flex-wrap pl-5">
+                    <div className="w-full flex flex-wrap pl-5 justify-between">
                         <div className='w-2/4'>
                             Name
                         </div>
-                        <div className='w-1/4'> 
-                            Modified
-                        </div>
-                        <div className='w-1/4'>
+                        <div className='w-1/4 mr-3'>
                             Size
                         </div>
                     </div>
-                    {files.files.map(file => {
-                        var select = selected.selected == file['name'] ? 'bg-zinc-950' : ''
-                        return(
-                            <button id={file['name']} key={file['name']} onClick={changeFile} value={file['name']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2')}>
-                                <div className='w-2/4 flex flex-wrap align-middle text-left'>
-                                    <div className="w-1/12">
-                                        <IconByName name={file['name']} className="w-full h-full"/>
+                    <div className="overflow-y-scroll h-96 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-zinc-800 scrollbar-radius scrollbar-thumb-rounded scrollbar-track-rounded mr-2">
+                        {files.files.map(file => {
+                            var select = selected.selected == file['name'] ? 'bg-zinc-950' : ''
+                            return(
+                                <button id={file['name']} key={file['name']} onClick={changeFile} value={file['name']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2 justify-between')}>
+                                    <div className='w-2/4 flex flex-wrap align-middle text-left'>
+                                        <div className="w-1/12">
+                                            <IconByName name={file['name']} className="w-full h-full"/>
+                                        </div>
+                                        <div className="w-11/12 flex flex-col justify-center pl-2">
+                                            {file['name']}
+                                        </div>
                                     </div>
-                                    <div className="w-11/12 flex flex-col justify-center pl-2">
-                                        {file['name']}
+                                    <div className='w-1/4 flex flex-col justify-center text-left'>
+                                        {getSize(file['size'])}
                                     </div>
-                                </div>
-                                {/* Hidden if sm: */}
-                                <div className='w-1/4 flex flex-col justify-center text-left'> 
-                                    {/* 09/06/2023 14:12 PM - EXAMPLE*/}
-                                    TODO
-                                </div>
-                                <div className='w-1/4 flex flex-col justify-center text-left'>
-                                    {getSize(file['size'])}
-                                </div>
-                            </button>
-                        )
-                    })}
-
+                                </button>
+                            )
+                        })}
+                    </div>
                     <div {...getRootProps()} className='flex mt-auto w-full p-5'>
                         <div className='flex w-full border border-white border-dashed px-4 py-3 hover:bg-zinc-950 rounded-lg'>
                             <input {...getInputProps()} />
@@ -211,15 +234,57 @@ export default function Files() {
                                 <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
                                     {selected.selected}
                                 </div>
-                                {/* MORE INFORMATION */}
-                                <div className='flex flex-box w-full py-5 mt-auto'>
-                                    <div className='w-3/5 px-2'>
-                                        <button onClick={downloadFile} className='w-full text-white bg-zinc-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                <div className='flex flex-col w-full pb-4'>
+                                    <div className='w-full font-semibold'>
+                                        Description
+                                    </div>
+                                    <div className='w-full font-normal'>
+                                        {selected.data.description ? selected.data.description : 'Add description...'}
+                                    </div>
+                                </div>
+                                <div className='flex flex-col w-full pb-4 mt-auto'>
+                                    <div className='w-full font-semibold-auto'>
+                                        Last Modified
+                                    </div>
+                                    <div className='w-full font-normal'>
+                                        {selected.data.lastModified ? selected.data.lastModified : 'Unknown'}
+                                    </div>
+                                </div>
+                                <div className='flex flex-col w-full pb-4'>
+                                    <div className='w-full font-semibold'>
+                                        Uploaded by
+                                    </div>
+                                    <div className='w-full font-normal'>
+                                        {selected.data.uploadedBy ? selected.data.uploadedBy : 'Unknown'}
+                                    </div>
+                                </div>
+                                <div className='flex flex-col w-full pb-4'>
+                                    <div className='w-full font-semibold'>
+                                        Size
+                                    </div>
+                                    <div className='w-full font-normal'>
+                                        {selected.data.size ? getSize(selected.data.size) : 'Unknown'}
+                                    </div>
+                                </div>
+                                <div className='flex flex-col w-full pb-4'>
+                                    <div className='w-full font-semibold'>
+                                        Path
+                                    </div>
+                                    <div className='w-full font-normal'>
+                                        {selected.data.path ? getSize(selected.data.path) : 'Unknown'}
+                                    </div>
+                                </div>
+                                
+                                <div className='flex flex-box w-full py-5'>
+                                    <div className='w-3/5 pr-2'>
+                                        <button onClick={downloadFile} className='relative w-full text-white bg-zinc-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                            <Download className="absolute w-full h-3/4 inset-y-1.5 -left-[33%] text-gray-400" />
                                             Download
                                         </button>
                                     </div>
-                                    <div className='w-2/5 px-2'>
-                                        <button className='w-full text-white bg-rose-900 hover:bg-rose-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                    <div className='w-2/5 pl-2'>
+                                        <button className='relative w-full text-white bg-rose-900 hover:bg-rose-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                            <Trash className="absolute w-full h-3/4 inset-y-1.5 -left-[33%] text-gray-400" /> 
                                             Delete
                                         </button>
                                     </div>
