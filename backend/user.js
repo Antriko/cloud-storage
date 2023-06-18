@@ -21,7 +21,7 @@ var userSchema = new mongoose.Schema({
 
     // First time user creation
     var id = new mongoose.Types.ObjectId();
-    hashed = bcrypt.hash(process.env.APP_PASS, saltRounds)  // Encrypt password
+    hashed = await bcrypt.hash(process.env.APP_PASS, saltRounds)  // Encrypt password
     user.create({
         _id: id,
         username: process.env.APP_USER,

@@ -17,7 +17,7 @@ export default function LoginComponent() {
             username: event.target.username.value,
             password: event.target.password.value
         }
-        console.log(data)
+        console.log('Form data', data)
 
         const options = {
             method: 'POST',
@@ -27,19 +27,23 @@ export default function LoginComponent() {
             body: JSON.stringify(data)
         }
         const response = await fetch('/api/user/login', options)
-        const respData = await response.json();
-        console.log(response, respData, response.status)
-        
         if (response.status == 200) {
             router.reload();
-            router.push('/')
+            return;
         }
-        setMessage({message: true, text: respData.text})
 
+        if (response.status == 502) {
+            setMessage({message: true, text: 'Cannot connect to server - check logs'})
+            return;
+        }
+
+        const respData = await response.json();
+        console.log(response, respData, response.status)
+        setMessage({message: true, text: respData.text})
     }
 
     return (
-        <div className="flex flex-col w-full items-center justify-center px-6 py-8 mx-auto lg:py-0">
+        <div className="flex flex-col w-full items-center justify-center px-6 py-8 mx-auto">
             <div className="w-full bg-zinc-700 text-white rounded-lg shadow md:mt-0 sm:max-w-md xl:p-0 px-6 py-8">
                 <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
                     <h1 className="text-xl font-bold leading-tight tracking-tight">

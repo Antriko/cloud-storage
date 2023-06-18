@@ -2,7 +2,7 @@ import { createContext, useState, useEffect } from "react";
 
 export const UserContext = createContext({username: null, data: {}});
 
-export function UserContextProvider({ children }) {
+export function UserContextProvider({ children }: any) {
     const [userData, setUserData] = useState({username: null, data: {}});
     useEffect(() => {
         async function updateData() {
@@ -13,13 +13,10 @@ export function UserContextProvider({ children }) {
                 }
             }
             const verify = await fetch('/api/user/verify', options);
-            if (verify.status == 401) {
+            if (verify.status !== 200) {
                 return;
             }
             const data = await verify.json();
-            if (data.status == 201) {
-                return;
-            }
             setUserData({username: data.username, data: data.data})
         }
         updateData();

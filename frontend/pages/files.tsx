@@ -121,11 +121,11 @@ export default function Files() {
     return(
         <div className='flex flex-col w-full'>
             {/* <button onClick={goBack} className="w-50 text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">Go back</button> */}
-            <div className='flex flex-wrap px-2'>
+            <div className='flex flex-wrap px-2 bg-zinc-900'>
                 {currentDir.map((dir, itt) => {
                     return(
                         <button key={dir} onClick={changeBackDir} value={itt} 
-                            className="w-50 text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 mx-0.5 text-center">
+                            className="w-50 text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 mx-0.5 text-center">
                                 {dir}
                         </button>)
                 })}
