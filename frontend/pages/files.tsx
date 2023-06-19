@@ -1,5 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback } from "react"
-import { UserContext } from '@/context/UserContext';
+import React, { useEffect, useState, useCallback } from "react"
 import { Folder, FolderPlus, Diagram2Fill, Search, House, Download, Trash } from 'react-bootstrap-icons'
 import IconByName from "@/components/icon";
 import { useDropzone } from 'react-dropzone'
@@ -17,7 +16,10 @@ export default function Files() {
     })
     const [currentDir, setCurrentDir] = useState<string[]>(['/'])
     const [reload, setReload] = useState(false)
-    const userData = useContext(UserContext);
+    const [search, setSearch] = useState({
+        isSearch: false,
+        results: [],
+    })
     const [selected, setSelected] = useState<any>({
         selected: null, 
         data: {
@@ -80,18 +82,44 @@ export default function Files() {
 
     const changeDir = (event: any) => {
         setCurrentDir(currentDir.concat(`${event.currentTarget.value}/`))
+        setSearch({isSearch: false, results: search.results})
     }
 
     const changeBackDir = (event: any) => {
         setCurrentDir(currentDir.slice(0, parseInt(event.currentTarget.value) + 1))
+        setSearch({isSearch: false, results: search.results})
     }
 
     const newDirectory = () => {
         
     }
 
-    const searchFunction = (event: any) => {
+    const searchFunction = async(event: any) => {
         console.log(event.currentTarget.value)
+        if(event.currentTarget.value == '') {
+            setSearch({
+                isSearch: false,
+                results: search.results,
+            })
+            return;
+        }
+        const body = {
+            searchTerm: event.currentTarget.value
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/search', options)
+        if(response.status !== 200) return;
+        const data = await response.json()
+        setSearch({
+            isSearch: true,
+            results: data,
+        })
     }
     
     const getSize = (size: number) => {
@@ -101,10 +129,23 @@ export default function Files() {
         return `${count} ${rank}`;
     }
 
-    const changeFile = (event: any) => {
-        setSelected({selected: event.currentTarget.id, data: selected.data})
-        // GET MORE FILE INFO - ADD TO DATA
-        console.log(event.currentTarget)
+    const changeFile = async(event: any) => {
+        var selectedFile = event.currentTarget.value
+        // setSelected({selected: event.currentTarget.value, data: selected.data})
+        const body = {
+            file: event.currentTarget.value
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/fileInfo', options)
+        if(response.status !== 200) return;
+        const data = await response.json()
+        setSelected({selected: selectedFile, data: data})
     }
     const downloadFile = () => {
         async function download() {
@@ -128,6 +169,7 @@ export default function Files() {
         download();
     }
 
+    var renderFile = search.isSearch ? search.results : files.files
     return(
         <div className='flex flex-col w-full'>
             <div className='flex flex-wrap px-2 bg-zinc-900'>
@@ -192,10 +234,10 @@ export default function Files() {
                         </div>
                     </div>
                     <div className="overflow-y-scroll h-96 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-zinc-800 scrollbar-radius scrollbar-thumb-rounded scrollbar-track-rounded mr-2">
-                        {files.files.map(file => {
-                            var select = selected.selected == file['name'] ? 'bg-zinc-950' : ''
+                        {renderFile.map((file, itt) => {
+                            var select = selected.selected == file['path'] ? 'bg-zinc-950' : ''
                             return(
-                                <button id={file['name']} key={file['name']} onClick={changeFile} value={file['name']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2 justify-between')}>
+                                <button id={file['path']} key={file['path']} onClick={changeFile} value={file['path']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2 justify-between')}>
                                     <div className='w-2/4 flex flex-wrap align-middle text-left'>
                                         <div className="w-1/12">
                                             <IconByName name={file['name']} className="w-full h-full"/>
@@ -270,7 +312,7 @@ export default function Files() {
                                         Path
                                     </div>
                                     <div className='w-full font-normal'>
-                                        {selected.data.path ? getSize(selected.data.path) : 'Unknown'}
+                                        {selected.data.path ? selected.data.path : 'Unknown'}
                                     </div>
                                 </div>
                                 
@@ -293,6 +335,7 @@ export default function Files() {
                     </div>
                 </div>
             </div>
+            <br/>{JSON.stringify(search)}
             <br/>{JSON.stringify(files)}
             <br/>{JSON.stringify(currentDir)}
             <br/>{JSON.stringify(selected)}

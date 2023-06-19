@@ -14,6 +14,8 @@ var fastFolderSizeAsync = promisify(fastFolderSize)
 var crypto = require('crypto');
 
 var multer  = require('multer');  // middleware for file uploading (multipart/form-data)
+const fg = require('fast-glob');
+
 
 const upload = multer({ storage: multer.memoryStorage() })
 
@@ -46,8 +48,10 @@ router.post('/files', authUser, async(req, res) => {
 
     for (var file of dirFiles) {
         filePath = path.join(__dirname, 'files', req.body.directory, file)
+        filePathInfo = path.join(req.body.directory, file)
         if (fs.lstatSync(filePath).isDirectory()) {
             size = await fastFolderSizeAsync(filePath)
+            
             directory.push({
                 name: file,
                 size: size,
@@ -56,6 +60,7 @@ router.post('/files', authUser, async(req, res) => {
             files.push({
                 name: file,
                 size: fs.lstatSync(filePath).size,
+                path: filePathInfo,
             })
         }
     }
@@ -83,6 +88,42 @@ router.get('/download', authUser, async(req, res) => {
     res.setHeader('Content-Type', mime.lookup(req.body.filename));
     res.setHeader('Content-Disposition', contentDisposition(req.body.filename));
     readStream.pipe(res);
+})
+
+router.post('/fileInfo', authUser, async(req, res) => {
+    console.log('body', req.body)
+    if (!req.body.file) {
+        res.sendStatus(201)
+        return
+    }
+    filePath = path.join(__dirname, 'files', req.body.file)
+    info = {
+        description: null,
+        lastModified: null,
+        uploadedBy: null,
+        size: fs.lstatSync(filePath).size,
+        path: req.body.file,
+    }
+    res.status(200).send(info)
+})
+
+router.post('/search', authUser, async(req, res) => {
+    if (!req.body.searchTerm) {
+        res.sendStatus(201)
+        return
+    }
+    fileDir = path.join(__dirname, 'files')
+    var fileSearch = await fg(`${fileDir}/**/*${req.body.searchTerm}*`)
+    files = []
+    fileSearch.map(file => {
+        filePath = file.replace(fileDir, '')
+        files.push({
+            name: filePath.split('/').at(-1),
+            size: fs.lstatSync(file).size,
+            path: filePath,
+        })
+    })
+    res.status(200).send(files)
 })
 
 // https://nodejs.org/api/crypto.html
