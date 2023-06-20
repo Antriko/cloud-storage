@@ -64,7 +64,7 @@ router.get('/verify', authUser, async(req, res) => {   // heartbeat
     if (!doc.data){doc.data = {}};
     doc.save();
     res.status(200).send({
-        username: req.session.userInfo.username, 
+        username: req.session.userInfo.username,
         data: doc.data
     });
 })

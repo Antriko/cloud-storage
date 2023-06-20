@@ -23,12 +23,23 @@ export default function Files() {
     const [selected, setSelected] = useState<any>({
         selected: null, 
         data: {
+            filename: null,
             description: null,
             lastModified: null,
             uploadedBy: null,
             size: null,
             path: null,
-        }})
+        }
+    })
+    const [currentDirectory, setCurrentDirectory] = useState({
+        id: '',
+        name: '/',
+        path: '/',
+        joint: [{
+            dirname: '/',
+            id: ''
+        }],
+    })
 
     const onDrop = useCallback((files: any) => {
         async function uploadFiles() {
@@ -37,7 +48,7 @@ export default function Files() {
             files.forEach((file: any) => {
                 formData.append('files', file)
             });
-            formData.append('directory', currentDir.join(''))
+            formData.append('directory', currentDirectory.id)
             console.log(formData.getAll('files'))
             const options = {
                 method: 'POST',
@@ -52,13 +63,18 @@ export default function Files() {
             }
         }
         uploadFiles();
-    }, [currentDir, reload])
+    }, [currentDirectory, reload])
     const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
 
     useEffect(() => {
         async function fetchData() {
+            const dirResponse = await fetch('/api/storage/baseDirectory')
+            if (dirResponse.status !== 200) return
+            const dirData = await dirResponse.json();
+
+
             const body = {
-                directory: currentDir.join('')
+                directory: currentDirectory.id ? currentDirectory.id : dirData.id,
             }
             const options = {
                 method: 'POST',
@@ -67,26 +83,52 @@ export default function Files() {
                 },
                 body: JSON.stringify(body)
             }
-
             const response = await fetch('/api/storage/files', options)
+            if (response.status !== 200) return
             const respData = await response.json();
-            if (response.status === 200) {
-                setFiles(respData)
-            }
+            setFiles(respData)
         }
         fetchData();
-    }, [currentDir, reload]);
+    }, [currentDirectory.id, reload]);
+    
+
     
 
 
 
-    const changeDir = (event: any) => {
-        setCurrentDir(currentDir.concat(`${event.currentTarget.value}/`))
+    const changeDir = async(event: any) => {
+        const body = {
+            directory: event.currentTarget.value,
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/directoryInfo', options)
+        if (response.status !== 200) return
+        const respData = await response.json();
+        setCurrentDirectory(respData)
         setSearch({isSearch: false, results: search.results})
     }
 
-    const changeBackDir = (event: any) => {
-        setCurrentDir(currentDir.slice(0, parseInt(event.currentTarget.value) + 1))
+    const changeBackDir = async(event: any) => {
+        const body = {
+            directory: event.currentTarget.value,
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/directoryInfo', options)
+        if (response.status !== 200) return
+        const respData = await response.json();
+        setCurrentDirectory(respData)
         setSearch({isSearch: false, results: search.results})
     }
 
@@ -131,7 +173,6 @@ export default function Files() {
 
     const changeFile = async(event: any) => {
         var selectedFile = event.currentTarget.value
-        // setSelected({selected: event.currentTarget.value, data: selected.data})
         const body = {
             file: event.currentTarget.value
         }
@@ -145,28 +186,8 @@ export default function Files() {
         const response = await fetch('/api/storage/fileInfo', options)
         if(response.status !== 200) return;
         const data = await response.json()
+        console.log(data)
         setSelected({selected: selectedFile, data: data})
-    }
-    const downloadFile = () => {
-        async function download() {
-            const body = {
-                directory: currentDir.join(''),
-                filename: selected.selected,
-            }
-            const options = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(body)
-            }
-
-            const response = await fetch('/api/storage/download', options)
-            console.log(response.arrayBuffer)
-            response.headers.forEach(function(val, key) { console.log(key + ' -> ' + val); });
-
-        }
-        download();
     }
 
     var renderFile = search.isSearch ? search.results : files.files
@@ -174,11 +195,12 @@ export default function Files() {
         <div className='flex flex-col w-full'>
             <div className='flex flex-wrap px-2 bg-zinc-900'>
                 <div className="w-3/5">
-                    {currentDir.map((dir, itt) => {
+                    {currentDirectory.joint.map((val, index, array) => array[array.length - 1 - index]).map(dir => {
+                        console.log(dir)
                         return(
-                            <button key={dir} onClick={changeBackDir} value={itt} 
+                            <button key={dir['id']} onClick={changeBackDir} value={dir['id']} 
                             className="w-50 text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 mx-0.5 text-center">
-                                    {dir}
+                                    {dir['dirname']}
                             </button>)
                     })}
                 </div>
@@ -212,11 +234,11 @@ export default function Files() {
                 {files.directory.map(dir => {
                     return(
                         <div className="w-40" key={dir['name']} >
-                            <button onClick={changeDir} value={dir['name']} 
+                            <button onClick={changeDir} value={dir['id']} 
                                 className="w-[95%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
                                     <Folder className="w-full h-3/4" />
                                     <div className="whitespace-nowrap overflow-hidden text-ellipsis">
-                                        {dir['name']}
+                                        {dir['dirname']}
                                     </div>
                             </button>
                         </div>
@@ -234,10 +256,10 @@ export default function Files() {
                         </div>
                     </div>
                     <div className="overflow-y-scroll h-96 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-zinc-800 scrollbar-radius scrollbar-thumb-rounded scrollbar-track-rounded mr-2">
-                        {renderFile.map((file, itt) => {
-                            var select = selected.selected == file['path'] ? 'bg-zinc-950' : ''
+                        {renderFile.map(file => {
+                            var select = selected.selected == file['id'] ? 'bg-zinc-950' : ''
                             return(
-                                <button id={file['path']} key={file['path']} onClick={changeFile} value={file['path']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2 justify-between')}>
+                                <button id={file['id']} key={file['id']} onClick={changeFile} value={file['id']} className={classNames(select, 'flex w-full hover:bg-zinc-950 pl-5 py-2 justify-between')}>
                                     <div className='w-2/4 flex flex-wrap align-middle text-left'>
                                         <div className="w-1/12">
                                             <IconByName name={file['name']} className="w-full h-full"/>
@@ -273,7 +295,7 @@ export default function Files() {
                             </div> : 
                             <React.Fragment>
                                 <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
-                                    {selected.selected}
+                                    {selected.data.filename}
                                 </div>
                                 <div className='flex flex-col w-full pb-4'>
                                     <div className='w-full font-semibold'>
@@ -288,7 +310,7 @@ export default function Files() {
                                         Last Modified
                                     </div>
                                     <div className='w-full font-normal'>
-                                        {selected.data.lastModified ? selected.data.lastModified : 'Unknown'}
+                                        { selected.data.lastModified ? new Date(selected.data.lastModified).toUTCString() : 'Unknown'}
                                     </div>
                                 </div>
                                 <div className='flex flex-col w-full pb-4'>
@@ -318,10 +340,12 @@ export default function Files() {
                                 
                                 <div className='flex flex-box w-full py-5'>
                                     <div className='w-3/5 pr-2'>
-                                        <button onClick={downloadFile} className='relative w-full text-white bg-zinc-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
-                                            <Download className="absolute w-full h-3/4 inset-y-1.5 -left-[33%] text-gray-400" />
-                                            Download
-                                        </button>
+                                        <a href={`/api/storage/download/${selected.selected}`}>
+                                            <button className='relative w-full text-white bg-zinc-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
+                                                <Download className="absolute w-full h-3/4 inset-y-1.5 -left-[33%] text-gray-400" />
+                                                Download
+                                            </button>
+                                        </a>
                                     </div>
                                     <div className='w-2/5 pl-2'>
                                         <button className='relative w-full text-white bg-rose-900 hover:bg-rose-950 font-medium rounded-lg text-base px-5 py-2.5 text-center'>
@@ -335,7 +359,7 @@ export default function Files() {
                     </div>
                 </div>
             </div>
-            <br/>{JSON.stringify(search)}
+            <br/>{JSON.stringify(currentDirectory)}
             <br/>{JSON.stringify(files)}
             <br/>{JSON.stringify(currentDir)}
             <br/>{JSON.stringify(selected)}

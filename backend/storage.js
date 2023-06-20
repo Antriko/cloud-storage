@@ -16,95 +16,230 @@ var crypto = require('crypto');
 var multer  = require('multer');  // middleware for file uploading (multipart/form-data)
 const fg = require('fast-glob');
 
+var fileSchema = new mongoose.Schema({
+    filename: String,
+    directory: mongoose.ObjectId,
+    description: String,
+    lastModified: {type: Date, default: Date.now},
+    uploadedBy: mongoose.ObjectId,
+})
+
+var dirSchema = new mongoose.Schema({
+    dirname: String,
+    parentDirectory: mongoose.ObjectId,
+});
+
+var userSchema = new mongoose.Schema({
+    username: String,
+    password: String
+});
+
+(async () => {
+    var dir = mongoose.model('directories', dirSchema)
+    var doc = await dir.findOne({
+        dirname: '/'
+    })
+    if(doc) return // Ensure root folder is created
+    dir.create({
+        dirname: '/',
+        parentDirectory: null,
+    })
+})()
 
 const upload = multer({ storage: multer.memoryStorage() })
 
 router.post('/upload', authUser, upload.array('files'), async(req, res) => {
-    console.log(req.files, req.body)
     if(!req.files) {
         res.sendStatus(201);
         return;
     }
-    fs.mkdirSync(path.join(__dirname, 'files', req.body.directory), {recursive: true})
+
+    var log = mongoose.model('files', fileSchema)
     req.files.map(file => {
-        filePath = path.join(__dirname, 'files', req.body.directory, file.originalname)
+        id = new mongoose.Types.ObjectId()
+        filePath = path.join(__dirname, 'files', id.toString())
         fs.writeFileSync(filePath, encrypt(file.buffer))
-        // Create entry log of uploaded time within database - Same for modifications
+
+        // findOne filename: file.originalname && directory -> return if true / skip
+
+        log.create({
+            _id: id,
+            filename: file.originalname,
+            directory: new mongoose.Types.ObjectId(req.body.directory),
+            description: null,
+            uploadedBy: new mongoose.Types.ObjectId(req.session.userInfo.id),
+        })
     })
     res.status(200).send({message: 'Files uploaded'});
 })
 
-router.post('/files', authUser, async(req, res) => {
-    filePath = path.join(__dirname, 'files', req.body.directory)
+const getDirectoryPath = async(parentDirectory, data = {path: '', joint: []}) => {
+    var dir = mongoose.model('directories', dirSchema)
+    var doc = await dir.findOne({
+        _id: new mongoose.Types.ObjectId(parentDirectory),
+    })
+    data.path = doc.dirname == '/' ? doc.dirname.concat(`${data.path}`) : doc.dirname.concat(`/${data.path}`)
+    data.joint.push({
+        dirname: doc.dirname,
+        id: doc._id,
+    })
+    if(doc.parentDirectory) {
+        data = await getDirectoryPath(doc.parentDirectory, data)
+    }
+    return(data)
+}
 
-    if (!fs.existsSync(filePath)) {
+router.post('/createDirectory', authUser, async(req, res) => {
+    var dir = mongoose.model('directories', dirSchema)
+    var currentDir = await dir.findOne({
+        _id: new mongoose.Types.ObjectId(req.body.parentDirectory)
+    })
+    
+    // Check if dirname exists in directory
+    var duplicate = await dir.findOne({
+        dirname: req.body.dirname,
+        parentDirectory: new mongoose.Types.ObjectId(req.body.parentDirectory)
+    })
+    if(duplicate) {
+        res.sendStatus(201)
+        return
+    };
+
+    dir.create({
+        dirname: req.body.dirname,
+        parentDirectory: new mongoose.Types.ObjectId(req.body.parentDirectory)
+    })
+    res.sendStatus(200)
+})
+
+router.get('/baseDirectory', authUser, async(req, res) => {
+    var dir = mongoose.model('directories', dirSchema)
+    var baseDir = await dir.findOne({
+        parentDirectory: null
+    })
+    res.status(200).send({
+        id: baseDir._id,
+        name: baseDir.dirname,
+        path: await getDirectoryPath(baseDir._id).path,
+    })
+})
+
+router.post('/files', authUser, async(req, res) => {
+    if (!req.body.directory) {
         res.sendStatus(201)
         return;
     }
-    dirFiles = fs.readdirSync(filePath)
 
+    
     var files = []
     var directory = []
-
+    
+    var log = mongoose.model('files', fileSchema)
+    dirFiles = await log.find({
+        directory: req.body.directory
+    })
     for (var file of dirFiles) {
-        filePath = path.join(__dirname, 'files', req.body.directory, file)
-        filePathInfo = path.join(req.body.directory, file)
-        if (fs.lstatSync(filePath).isDirectory()) {
-            size = await fastFolderSizeAsync(filePath)
-            
-            directory.push({
-                name: file,
-                size: size,
-            })
-        } else {
-            files.push({
-                name: file,
-                size: fs.lstatSync(filePath).size,
-                path: filePathInfo,
-            })
-        }
+        filePath = path.join(__dirname, 'files', file._id.toString())
+        files.push({
+            name: file.filename,
+            id: file._id.toString(),
+            size: fs.lstatSync(filePath).size,
+            path: file.directory,
+        })
     }
+
+    var dir = mongoose.model('directories', dirSchema)
+    var doc = await dir.find({
+        parentDirectory: new mongoose.Types.ObjectId(req.body.directory),
+    })
+    
+    for (var dir of doc) {
+        directory.push({
+            dirname: dir.dirname,
+            id: dir._id.toString(),
+        })
+    }
+
     dirInfo = {
-        currentDir: req.body.directory,
+        currentDir: await getDirectoryPath(req.body.directory).path,
         files: files,
         directory: directory,
     }
-    console.log(dirInfo)
     res.status(200).send(dirInfo)
 })
 
 var stream = require('stream');
-router.get('/download', authUser, async(req, res) => {
-    console.log('body', req.body)
-    if (!req.body.filename) {
+router.get('/download/:id', authUser, async(req, res) => {
+    var log = mongoose.model('files', fileSchema)
+    var doc = await log.findOne({
+        _id: new mongoose.Types.ObjectId(req.params.id)
+    })
+    if (!doc) {
         res.sendStatus(201)
         return
     }
-    var file = fs.readFileSync(path.join(__dirname, 'files', req.body.directory, req.body.filename))
+    var file = fs.readFileSync(path.join(__dirname, 'files', req.params.id))
     var decrypted = decrypt(file)
 
     var readStream = new stream.PassThrough();
     readStream.end(decrypted);
-    res.setHeader('Content-Type', mime.lookup(req.body.filename));
-    res.setHeader('Content-Disposition', contentDisposition(req.body.filename));
+    res.setHeader('Content-Type', mime.lookup(doc.filename));
+    res.setHeader('Content-Disposition', contentDisposition(doc.filename));
     readStream.pipe(res);
 })
 
 router.post('/fileInfo', authUser, async(req, res) => {
-    console.log('body', req.body)
     if (!req.body.file) {
         res.sendStatus(201)
         return
     }
+    var log = mongoose.model('files', fileSchema)
+    var doc = await log.findOne({
+        _id: new mongoose.Types.ObjectId(req.body.file)
+    })
+    if (!doc) {
+        res.sendStatus(201)
+        return
+    }
+
     filePath = path.join(__dirname, 'files', req.body.file)
+    var user = mongoose.model('Users', userSchema)
+    var userInfo = await user.findOne({
+        _id: doc.uploadedBy
+    })
+    dirInfo = await getDirectoryPath(doc.directory)
+    console.log(dirInfo.path)
     info = {
-        description: null,
-        lastModified: null,
-        uploadedBy: null,
+        filename: doc.filename,
+        description: doc.description,
+        lastModified: doc.lastModified,
+        uploadedBy: userInfo ? userInfo.username : 'Unknown',
         size: fs.lstatSync(filePath).size,
-        path: req.body.file,
+        path: dirInfo.path,
     }
     res.status(200).send(info)
+})
+
+router.post('/directoryInfo', authUser, async(req, res) => {
+    if (!req.body.directory) {
+        res.sendStatus(201)
+        return
+    }
+    var dir = mongoose.model('directories', dirSchema)
+    var doc = await dir.findOne({
+        _id: new mongoose.Types.ObjectId(req.body.directory),
+    })
+    if (!doc) {
+        res.sendStatus(201)
+        return
+    }
+    var path = await getDirectoryPath(req.body.directory)
+    res.status(200).send({
+        id: doc.id,
+        name: doc.dirname,
+        path: path.path,
+        joint: path.joint,
+    })
 })
 
 router.post('/search', authUser, async(req, res) => {
@@ -112,17 +247,19 @@ router.post('/search', authUser, async(req, res) => {
         res.sendStatus(201)
         return
     }
-    fileDir = path.join(__dirname, 'files')
-    var fileSearch = await fg(`${fileDir}/**/*${req.body.searchTerm}*`)
-    files = []
-    fileSearch.map(file => {
-        filePath = file.replace(fileDir, '')
+    var log = mongoose.model('files', fileSchema)
+    var doc = await log.find({filename: {$regex: `${req.body.searchTerm}*`, $options: 'i'}})
+
+    var files = []
+    for (var file of doc) {
+        filePath = path.join(__dirname, 'files', file._id.toString())
         files.push({
-            name: filePath.split('/').at(-1),
-            size: fs.lstatSync(file).size,
-            path: filePath,
+            name: file.filename,
+            id: file._id.toString(),
+            size: fs.lstatSync(filePath).size,
+            path: file.directory,
         })
-    })
+    }
     res.status(200).send(files)
 })
 
