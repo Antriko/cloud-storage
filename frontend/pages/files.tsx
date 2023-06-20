@@ -54,7 +54,6 @@ export default function Files() {
                 formData.append('files', file)
             });
             formData.append('directory', currentDirectory.id)
-            console.log(formData.getAll('files'))
             const options = {
                 method: 'POST',
                 body: formData
@@ -62,7 +61,6 @@ export default function Files() {
             // Uploading status perhaps?
             const response = await fetch('/api/storage/upload', options)
             const respData = await response.json();
-            console.log(respData)
             if (response.status === 200) {
                 setReload(reload ? false : true)
             }
@@ -152,7 +150,6 @@ export default function Files() {
             dirname: createDirectory.name,
             parentDirectory: currentDirectory.id,
         }
-        console.log(body)
         const options = {
             method: 'POST',
             headers: {
@@ -168,7 +165,6 @@ export default function Files() {
     }
 
     const searchFunction = async(event: any) => {
-        console.log(event.currentTarget.value)
         if(event.currentTarget.value == '') {
             setSearch({
                 isSearch: false,
@@ -203,7 +199,6 @@ export default function Files() {
     }
 
     const saveDescription = async(event: any) => {
-        console.log(event.currentTarget.value)
         var data = selected.data
         data.description = event.currentTarget.value
         setSelected({
@@ -222,7 +217,6 @@ export default function Files() {
             body: JSON.stringify(body)
         }
         const response = await fetch('/api/storage/setDescription', options)
-        console.log(response.status)
     }
 
     const changeFile = async(event: any) => {
@@ -240,7 +234,6 @@ export default function Files() {
         const response = await fetch('/api/storage/fileInfo', options)
         if(response.status !== 200) return;
         const data = await response.json()
-        console.log(data)
         setSelected({selected: selectedFile, data: data})
     }
 
@@ -250,7 +243,6 @@ export default function Files() {
             <div className='flex flex-wrap px-2 bg-zinc-900'>
                 <div className="w-3/5">
                     {currentDirectory.joint.map((val, index, array) => array[array.length - 1 - index]).map(dir => {
-                        console.log(dir)
                         return(
                             <button key={dir['id']} onClick={changeBackDir} value={dir['id']} 
                             className="w-50 text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 mx-0.5 text-center">
