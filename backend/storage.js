@@ -6,15 +6,8 @@ var path = require('path');
 var authUser = require('./authUser.js');
 var mime = require('mime-types')
 var contentDisposition = require('content-disposition')
-
-var fastFolderSize = require('fast-folder-size')
-var { promisify } = require('util')
-var fastFolderSizeAsync = promisify(fastFolderSize)
-
 var crypto = require('crypto');
-
 var multer  = require('multer');  // middleware for file uploading (multipart/form-data)
-const fg = require('fast-glob');
 
 var fileSchema = new mongoose.Schema({
     filename: String,
