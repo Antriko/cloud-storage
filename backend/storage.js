@@ -179,6 +179,7 @@ router.post('/files', authUser, async(req, res) => {
     })
     for (var file of dirFiles) {
         filePath = path.join(__dirname, 'files', file._id.toString())
+        if (!fs.existsSync(filePath)) continue
         files.push({
             name: file.filename,
             id: file._id.toString(),
