@@ -74,13 +74,13 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
             })
         }
         
-        var file = await fileInfo.create({
+        var fileEntry = await fileInfo.create({
             filename: name,
             directory: new mongoose.Types.ObjectId(directory),
             description: '',
             uploadedBy: new mongoose.Types.ObjectId(req.session.userInfo.id),
         })
-        filePath = path.join(__dirname, 'files', file.id.toString())
+        filePath = path.join(__dirname, 'files', fileEntry.id.toString())
         fs.writeFileSync(filePath, encrypt(file.buffer))
     })
     res.status(200).send({message: 'Files uploaded'});
