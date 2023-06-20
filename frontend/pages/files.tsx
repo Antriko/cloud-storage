@@ -33,8 +33,8 @@ export default function Files() {
     })
     const [currentDirectory, setCurrentDirectory] = useState({
         id: '',
-        name: '/',
         path: '/',
+        name: '/',
         joint: [{
             dirname: '/',
             id: ''
@@ -152,6 +152,7 @@ export default function Files() {
             dirname: createDirectory.name,
             parentDirectory: currentDirectory.id,
         }
+        console.log(body)
         const options = {
             method: 'POST',
             headers: {
@@ -161,6 +162,7 @@ export default function Files() {
         }
         const response = await fetch('/api/storage/createDirectory', options)
         if (response.status === 200) {
+            setCreateDirectory({isCreating: false, name: ''})
             setReload(reload ? false : true)
         }
     }
@@ -283,31 +285,33 @@ export default function Files() {
                 </div>
             </div>
 
-            <div className='flex flex-wrap px-2'>
-                <div className="w-40">
+            <div className='flex flex-box mx-2 overflow-x-scroll scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-zinc-900 scrollbar-radius scrollbar-thumb-rounded scrollbar-track-rounded mb-2'>
+                <div className="w-40 flex flex-none">
                     <div className="w-[95%] text-white bg-zinc-900 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
                         <Diagram2Fill className="w-full h-3/4" />
                         Directories
                     </div>
                 </div>
-                <div className="w-20 flex flex-col justify-end">
+                <div className="w-20 flex flex-none flex-col justify-end">
                     <button onClick={setCreating} className="w-[90%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm p-5 my-2">
                         <FolderPlus className="w-full h-full" />
                     </button>
                 </div>
-                {files.directory.map(dir => {
-                    return(
-                        <div className="w-40" key={dir['name']} >
-                            <button onClick={changeDir} value={dir['id']} 
-                                className="w-[95%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
-                                    <Folder className="w-full h-3/4" />
-                                    <div className="whitespace-nowrap overflow-hidden text-ellipsis">
-                                        {dir['dirname']}
-                                    </div>
-                            </button>
-                        </div>
-                    )
-                })}
+                <div className="flex flex-none flex-nowrap w-100 ">
+                    {files.directory.map(dir => {
+                        return(
+                            <div className="w-40" key={dir['name']} >
+                                <button onClick={changeDir} value={dir['id']} 
+                                    className="w-[95%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 py-2.5 my-2 text-center">
+                                        <Folder className="w-full h-3/4" />
+                                        <div className="whitespace-nowrap overflow-hidden text-ellipsis">
+                                            {dir['dirname']}
+                                        </div>
+                                </button>
+                            </div>
+                        )
+                    })}
+                </div>
             </div>
             <div className='flex flex-wrap px-2'>
                 <div className='flex flex-col w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
@@ -423,11 +427,6 @@ export default function Files() {
                     </div>
                 </div>
             </div>
-            <br/>{JSON.stringify(createDirectory)}
-            <br/>{JSON.stringify(currentDirectory)}
-            <br/>{JSON.stringify(files)}
-            <br/>{JSON.stringify(currentDir)}
-            <br/>{JSON.stringify(selected)}
         </div>
     )
 }

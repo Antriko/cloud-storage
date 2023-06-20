@@ -136,13 +136,12 @@ const getDirectoryPath = async(parentDirectory, data = {path: '', joint: []}) =>
 }
 
 router.post('/createDirectory', authUser, async(req, res) => {
-    console.log(req.body)
     var dir = mongoose.model('directories', dirSchema)
     var doc = await dir.findOne({
         parentDirectory: null,
     })
-    var directory = req.body.directory ? req.body.directory : doc._id
-
+    console.log(req.body.parentDirectory, doc._id)
+    var directory = req.body.parentDirectory ? req.body.parentDirectory : doc._id
 
     // Check if dirname exists in directory
     var duplicate = await dir.findOne({
