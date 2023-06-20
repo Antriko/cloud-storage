@@ -52,9 +52,8 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
         parentDirectory: null,
     })
     var directory = req.body.directory ? req.body.directory : doc._id
-    console.log(directory)
 
-    var log = mongoose.model('files', fileSchema)
+    var fileInfo = mongoose.model('files', fileSchema)
     req.files.map(async file => {
         id = new mongoose.Types.ObjectId()
         filePath = path.join(__dirname, 'files', id.toString())
@@ -62,24 +61,23 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
 
 
         var name = file.originalname
-        var fileDuplicate = await log.findOne({
+        var fileDuplicate = await fileInfo.findOne({
             filename: name,
             directory: new mongoose.Types.ObjectId(directory)
         })
-        console.log(fileDuplicate)
         // Avoid duplication of names
         let itt = 0
         while (fileDuplicate) {
             itt++
             var ext = `.${file.originalname.split('.').at(-1)}`
             name = file.originalname.replace(ext, `-${itt}`).concat(ext)
-            var fileDuplicate = await log.findOne({
+            var fileDuplicate = await fileInfo.findOne({
                 filename: name,
                 directory: new mongoose.Types.ObjectId(directory)
             })
         }
 
-        log.create({
+        fileInfo.create({
             _id: id,
             filename: name,
             directory: new mongoose.Types.ObjectId(directory),
@@ -95,8 +93,8 @@ router.post('/setDescription', authUser, async(req, res) => {
         res.sendStatus(201);
         return;
     }
-    var log = mongoose.model('files', fileSchema)
-    var doc = await log.findOne({
+    var fileInfo = mongoose.model('files', fileSchema)
+    var doc = await fileInfo.findOne({
         _id: req.body.id
     })
 
@@ -133,7 +131,6 @@ router.post('/createDirectory', authUser, async(req, res) => {
     var doc = await dir.findOne({
         parentDirectory: null,
     })
-    console.log(req.body.parentDirectory, doc._id)
     var directory = req.body.parentDirectory ? req.body.parentDirectory : doc._id
 
     // Check if dirname exists in directory
@@ -175,8 +172,8 @@ router.post('/files', authUser, async(req, res) => {
     var files = []
     var directory = []
     
-    var log = mongoose.model('files', fileSchema)
-    dirFiles = await log.find({
+    var fileInfo = mongoose.model('files', fileSchema)
+    dirFiles = await fileInfo.find({
         directory: req.body.directory
     })
     for (var file of dirFiles) {
@@ -211,8 +208,8 @@ router.post('/files', authUser, async(req, res) => {
 
 var stream = require('stream');
 router.get('/download/:id', authUser, async(req, res) => {
-    var log = mongoose.model('files', fileSchema)
-    var doc = await log.findOne({
+    var fileInfo = mongoose.model('files', fileSchema)
+    var doc = await fileInfo.findOne({
         _id: new mongoose.Types.ObjectId(req.params.id)
     })
     if (!doc) {
@@ -234,8 +231,8 @@ router.post('/fileInfo', authUser, async(req, res) => {
         res.sendStatus(201)
         return
     }
-    var log = mongoose.model('files', fileSchema)
-    var doc = await log.findOne({
+    var fileInfo = mongoose.model('files', fileSchema)
+    var doc = await fileInfo.findOne({
         _id: new mongoose.Types.ObjectId(req.body.file)
     })
     if (!doc) {
@@ -287,8 +284,8 @@ router.post('/search', authUser, async(req, res) => {
         res.sendStatus(201)
         return
     }
-    var log = mongoose.model('files', fileSchema)
-    var doc = await log.find({filename: {$regex: `${req.body.searchTerm}*`, $options: 'i'}})
+    var fileInfo = mongoose.model('files', fileSchema)
+    var doc = await fileInfo.find({filename: {$regex: `${req.body.searchTerm}*`, $options: 'i'}})
 
     var files = []
     for (var file of doc) {
