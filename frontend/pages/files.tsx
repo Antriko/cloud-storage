@@ -251,13 +251,13 @@ export default function Files() {
                     })}
                 </div>
                 <div className="relative flex flex-box w-2/5">
-                    <div className="flex flex-box w-10/12">
+                    <div className="flex flex-box w-9/12 md:w-10/12">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
                             <Search className="w-5 h-5 text-gray-400" />
                         </div>
                         <input type="search" className="block w-full rounded-lg my-2 ml-2 pr-4 pl-10 bg-zinc-800" onChange={searchFunction} placeholder="Search..." />
                     </div>
-                    <div className="flex flex-box ml-auto mr-auto w-1/12">
+                    <div className="flex flex-box ml-auto mr-auto w-2/12 md:w-1/12">
                         <Link href={'/'} className="relative w-full text-white bg-zinc-800 hover:bg-zinc-950 font-medium rounded-lg text-sm px-5 pt-2.5 my-2 mx-0.5 text-center">
                             <House className="absolute w-full h-3/4 inset-y-1 left-0 text-gray-400"/>
                         </Link>
