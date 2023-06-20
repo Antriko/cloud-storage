@@ -40,7 +40,6 @@ var userSchema = new mongoose.Schema({
 })()
 
 const upload = multer({ storage: multer.memoryStorage() })
-
 router.post('/upload', authUser, upload.array('files'), async(req, res) => {
     if(!req.files) {
         res.sendStatus(201);
@@ -55,16 +54,14 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
 
     var fileInfo = mongoose.model('files', fileSchema)
     req.files.map(async file => {
-        id = new mongoose.Types.ObjectId()
-        filePath = path.join(__dirname, 'files', id.toString())
-        fs.writeFileSync(filePath, encrypt(file.buffer))
-
-
+        
+        
         var name = file.originalname
         var fileDuplicate = await fileInfo.findOne({
             filename: name,
             directory: new mongoose.Types.ObjectId(directory)
         })
+        
         // Avoid duplication of names
         let itt = 0
         while (fileDuplicate) {
@@ -76,14 +73,15 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
                 directory: new mongoose.Types.ObjectId(directory)
             })
         }
-
-        fileInfo.create({
-            _id: id,
+        
+        var file = await fileInfo.create({
             filename: name,
             directory: new mongoose.Types.ObjectId(directory),
             description: '',
             uploadedBy: new mongoose.Types.ObjectId(req.session.userInfo.id),
         })
+        filePath = path.join(__dirname, 'files', file.id.toString())
+        fs.writeFileSync(filePath, encrypt(file.buffer))
     })
     res.status(200).send({message: 'Files uploaded'});
 })
