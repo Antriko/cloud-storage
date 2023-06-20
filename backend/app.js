@@ -43,6 +43,6 @@ mongoose.set('strictQuery', true);
     app.use('/api/storage', storage)
 })()
 
-const PORT = 3010;
+const PORT = process.env.PORT_BACKEND;
 app.listen(PORT);
-console.log("Backend started")
+console.log("Backend started", PORT)

@@ -10,7 +10,7 @@ services:
     depends_on:
       - backend
     ports: 
-      - 3000:3000
+      - ${PORT_FRONTEND}:${PORT_FRONTEND}
     volumes:
       - ./frontend:/frontend:rw
       - ./frontend/out:/frontend/out:rw
@@ -26,7 +26,7 @@ services:
     depends_on:
       - db
     ports: 
-      - 3010:3010
+      - ${PORT_BACKEND}:${PORT_BACKEND}
     restart: always
     command: nodemon app.js
     volumes:
@@ -42,6 +42,7 @@ services:
       APP_USER: "${APP_USER}"
       APP_PASS: "${APP_PASS}"
       DB_SERVICE_NAME: "db"
+      PORT_BACKEND: "${PORT_BACKEND}"
     
   db:
     image: mongo:latest
@@ -67,14 +68,18 @@ services:
     ports:
       - 80:80
       - 443:443
+    environment:
+      DOMAIN: ${DOMAIN}
+      PORT_BACKEND: ${PORT_BACKEND}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     restart: always
     volumes:
-      - ./nginx/prod/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/prod:/etc/nginx/templates
       - ./nginx/crontab.txt:/crontab.txt
       - ./certs/conf:/etc/letsencrypt
       - ./frontend/out:/front_dist
     # logging:
-      # driver: "none"
+    #   driver: "none"
 
 volumes:
   mongodb_data_container:

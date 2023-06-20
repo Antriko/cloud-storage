@@ -4,11 +4,11 @@ events {
 
 http {
     upstream frontend {
-        server frontend:3000;
+        server frontend:${PORT_FRONTEND};
     }
     
     upstream backend {
-        server backend:3010;
+        server backend:${PORT_BACKEND};
     }
 
     server {

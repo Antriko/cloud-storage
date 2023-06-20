@@ -5,7 +5,7 @@ events {
 http{
     server {
         listen       80;
-        server_name  cloud.antriko.co.uk;
+        server_name  ${DOMAIN};
 
         location / {
             root   /usr/share/nginx/html;

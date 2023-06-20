@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - backend
-    command: npm run dev
+    command: npm run dev -- -p ${PORT_FRONTEND}
     ports: 
-      - 3000:3000
+      - ${PORT_FRONTEND}:${PORT_FRONTEND}
     restart: unless-stopped
     volumes:
       - ./frontend:/frontend:rw
@@ -27,7 +27,7 @@ services:
     depends_on:
       - db
     ports: 
-      - 3010:3010
+      - ${PORT_BACKEND}:${PORT_BACKEND}
     restart: unless-stopped
     command: nodemon app.js
     volumes:
@@ -43,6 +43,7 @@ services:
       APP_USER: "${APP_USER}"
       APP_PASS: "${APP_PASS}"
       DB_SERVICE_NAME: "db"
+      PORT_BACKEND: "${PORT_BACKEND}"
 
   db:
     image: mongo:latest
@@ -69,9 +70,14 @@ services:
     ports:
       - 80:80
       - 443:443
+    environment:
+      PORT_FRONTEND: ${PORT_FRONTEND}
+      PORT_BACKEND: ${PORT_BACKEND}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+
     restart: unless-stopped
     volumes:
-      - ./nginx/dev/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/dev:/etc/nginx/templates
       - ./static:/static:rw
       - ./frontend/front_dist:/front_dist
     logging:
