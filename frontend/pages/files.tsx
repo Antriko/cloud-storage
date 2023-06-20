@@ -313,8 +313,8 @@ export default function Files() {
                     })}
                 </div>
             </div>
-            <div className='flex flex-wrap px-2'>
-                <div className='flex flex-col w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
+            <div className='flex flex-col-reverse md:flex-row px-2'>
+                <div className='flex flex-col w-full md:w-3/5 bg-zinc-900 font-medium rounded-lg text-lg py-3'>
                     <div className="w-full flex flex-wrap pl-5 justify-between">
                         <div className='w-2/4'>
                             Name
@@ -355,8 +355,8 @@ export default function Files() {
                     </div>
 
                 </div>
-                <div className='flex flex-wrap w-2/5'>
-                    <div className='flex flex-col w-full bg-zinc-900 font-medium rounded-lg text-lg py-3 px-5 ml-2'>
+                <div className='flex flex-wrap w-full md:w-2/5 md:ml-2 mb-2 md:mb-0'>
+                    <div className='flex flex-col w-full bg-zinc-900 font-medium rounded-lg text-lg py-3 px-5'>
                         { !selected.selected ? 
                             <div className='flex flex-box w-full text-3xl pt-4 justify-center'>
                                 Select a file
