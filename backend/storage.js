@@ -28,6 +28,9 @@ var userSchema = new mongoose.Schema({
 });
 
 (async () => {
+    if (!fs.existsSync(`files`)) {
+        fs.mkdirSync(`files`);
+    }
     var dir = mongoose.model('directories', dirSchema)
     var doc = await dir.findOne({
         dirname: '/'
