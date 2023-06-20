@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react"
-import { Folder, FolderPlus, Diagram2Fill, Search, House, Download, Trash } from 'react-bootstrap-icons'
+import { Folder, FolderPlus, Diagram2Fill, Search, House, Download, Trash, Check, X } from 'react-bootstrap-icons'
 import IconByName from "@/components/icon";
 import { useDropzone } from 'react-dropzone'
 import Link from "next/link";
@@ -21,14 +21,14 @@ export default function Files() {
         results: [],
     })
     const [selected, setSelected] = useState<any>({
-        selected: null, 
+        selected: '', 
         data: {
-            filename: null,
-            description: null,
-            lastModified: null,
-            uploadedBy: null,
-            size: null,
-            path: null,
+            filename: '',
+            description: '',
+            lastModified: '',
+            uploadedBy: '',
+            size: '',
+            path: '',
         }
     })
     const [currentDirectory, setCurrentDirectory] = useState({
@@ -39,6 +39,11 @@ export default function Files() {
             dirname: '/',
             id: ''
         }],
+    })
+
+    const [createDirectory, setCreateDirectory] = useState({
+        isCreating: false,
+        name: '',
     })
 
     const onDrop = useCallback((files: any) => {
@@ -132,8 +137,32 @@ export default function Files() {
         setSearch({isSearch: false, results: search.results})
     }
 
-    const newDirectory = () => {
-        
+    const setCreating = () => {
+        setCreateDirectory({isCreating: true, name:''})
+    }
+    const setDirectory = (event: any) => {
+        setCreateDirectory({isCreating: true, name: event.currentTarget.value})
+    }
+    const removeDirectory = (event: any) => {
+        setCreateDirectory({isCreating: false, name: ''})
+    }
+
+    const submitDirectory = async() => {
+        const body = {
+            dirname: createDirectory.name,
+            parentDirectory: currentDirectory.id,
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/createDirectory', options)
+        if (response.status === 200) {
+            setReload(reload ? false : true)
+        }
     }
 
     const searchFunction = async(event: any) => {
@@ -169,6 +198,29 @@ export default function Files() {
         const rank = (k > 0 ? 'KMGT'[k - 1] : '') + 'B';
         const count = Math.floor(size / Math.pow(1024, k));
         return `${count} ${rank}`;
+    }
+
+    const saveDescription = async(event: any) => {
+        console.log(event.currentTarget.value)
+        var data = selected.data
+        data.description = event.currentTarget.value
+        setSelected({
+            selected: selected.selected,
+            data: data,
+        })
+        const body = {
+            id: selected.selected,
+            description: event.currentTarget.value
+        }
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body)
+        }
+        const response = await fetch('/api/storage/setDescription', options)
+        console.log(response.status)
     }
 
     const changeFile = async(event: any) => {
@@ -218,6 +270,18 @@ export default function Files() {
                     </div>
                 </div>
             </div>
+            <div className={classNames(createDirectory.isCreating ? '' : 'hidden', `w-full flex flex-box px-2 mt-2`)}>
+                <input type="text" onChange={setDirectory} className="block w-2/6 rounded-lg my-2 py-2 pr-4 pl-10 bg-zinc-900" value={createDirectory.name} placeholder="Directory name..." />
+                <div className="flex flex-box w-full">
+                    <button onClick={submitDirectory} className='relative w-1/12 my-2 ml-2 text-white bg-green-700 hover:bg-green-800 font-medium rounded-lg text-base text-center'>
+                        <Check className="absolute w-full h-full inset-y-0 inset-x-0 text-white" />
+                    </button>
+
+                    <button onClick={removeDirectory} className='relative w-1/12 my-2 ml-2 text-white bg-rose-900 hover:bg-rose-950 font-medium rounded-lg text-base text-center'>
+                        <X className="absolute w-full h-full inset-y-0 inset-x-0 text-white" />
+                    </button>
+                </div>
+            </div>
 
             <div className='flex flex-wrap px-2'>
                 <div className="w-40">
@@ -227,7 +291,7 @@ export default function Files() {
                     </div>
                 </div>
                 <div className="w-20 flex flex-col justify-end">
-                    <button onClick={newDirectory} className="w-[90%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm p-5 my-2">
+                    <button onClick={setCreating} className="w-[90%] text-white bg-zinc-900 hover:bg-zinc-950 font-medium rounded-lg text-sm p-5 my-2">
                         <FolderPlus className="w-full h-full" />
                     </button>
                 </div>
@@ -301,9 +365,9 @@ export default function Files() {
                                     <div className='w-full font-semibold'>
                                         Description
                                     </div>
-                                    <div className='w-full font-normal'>
-                                        {selected.data.description ? selected.data.description : 'Add description...'}
-                                    </div>
+                                    <input onChange={saveDescription} type='textarea' className='w-full font-normal bg-zinc-800 rounded-lg p-3 mt-2' placeholder='Add description...' 
+                                        value={selected.data.description ? selected.data.description : ''} />
+                                        {/* {selected.data.description ? selected.data.description : 'Add description...'} */}
                                 </div>
                                 <div className='flex flex-col w-full pb-4 mt-auto'>
                                     <div className='w-full font-semibold-auto'>
@@ -359,6 +423,7 @@ export default function Files() {
                     </div>
                 </div>
             </div>
+            <br/>{JSON.stringify(createDirectory)}
             <br/>{JSON.stringify(currentDirectory)}
             <br/>{JSON.stringify(files)}
             <br/>{JSON.stringify(currentDir)}

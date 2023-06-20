@@ -54,23 +54,69 @@ router.post('/upload', authUser, upload.array('files'), async(req, res) => {
         return;
     }
 
+    var dir = mongoose.model('directories', dirSchema)
+    var doc = await dir.findOne({
+        parentDirectory: null,
+    })
+    var directory = req.body.directory ? req.body.directory : doc._id
+    console.log(directory)
+
     var log = mongoose.model('files', fileSchema)
-    req.files.map(file => {
+    req.files.map(async file => {
         id = new mongoose.Types.ObjectId()
         filePath = path.join(__dirname, 'files', id.toString())
         fs.writeFileSync(filePath, encrypt(file.buffer))
 
-        // findOne filename: file.originalname && directory -> return if true / skip
+
+        var name = file.originalname
+        var fileDuplicate = await log.findOne({
+            filename: name,
+            directory: new mongoose.Types.ObjectId(directory)
+        })
+        console.log(fileDuplicate)
+        // Avoid duplication of names
+        let itt = 0
+        while (fileDuplicate) {
+            itt++
+            var ext = `.${file.originalname.split('.').at(-1)}`
+            name = file.originalname.replace(ext, `-${itt}`).concat(ext)
+            var fileDuplicate = await log.findOne({
+                filename: name,
+                directory: new mongoose.Types.ObjectId(directory)
+            })
+        }
 
         log.create({
             _id: id,
-            filename: file.originalname,
-            directory: new mongoose.Types.ObjectId(req.body.directory),
-            description: null,
+            filename: name,
+            directory: new mongoose.Types.ObjectId(directory),
+            description: '',
             uploadedBy: new mongoose.Types.ObjectId(req.session.userInfo.id),
         })
     })
     res.status(200).send({message: 'Files uploaded'});
+})
+
+router.post('/setDescription', authUser, async(req, res) => {
+    if(!req.body.id) {
+        res.sendStatus(201);
+        return;
+    }
+    var log = mongoose.model('files', fileSchema)
+    var doc = await log.findOne({
+        _id: req.body.id
+    })
+
+    if (!doc) {
+        res.sendStatus(201)
+        return
+    }
+    await doc.set({
+        description: req.body.description
+    }).save()
+
+    res.sendStatus(200)
+
 })
 
 const getDirectoryPath = async(parentDirectory, data = {path: '', joint: []}) => {
@@ -90,15 +136,18 @@ const getDirectoryPath = async(parentDirectory, data = {path: '', joint: []}) =>
 }
 
 router.post('/createDirectory', authUser, async(req, res) => {
+    console.log(req.body)
     var dir = mongoose.model('directories', dirSchema)
-    var currentDir = await dir.findOne({
-        _id: new mongoose.Types.ObjectId(req.body.parentDirectory)
+    var doc = await dir.findOne({
+        parentDirectory: null,
     })
-    
+    var directory = req.body.directory ? req.body.directory : doc._id
+
+
     // Check if dirname exists in directory
     var duplicate = await dir.findOne({
         dirname: req.body.dirname,
-        parentDirectory: new mongoose.Types.ObjectId(req.body.parentDirectory)
+        parentDirectory: new mongoose.Types.ObjectId(directory)
     })
     if(duplicate) {
         res.sendStatus(201)
@@ -107,7 +156,7 @@ router.post('/createDirectory', authUser, async(req, res) => {
 
     dir.create({
         dirname: req.body.dirname,
-        parentDirectory: new mongoose.Types.ObjectId(req.body.parentDirectory)
+        parentDirectory: new mongoose.Types.ObjectId(directory)
     })
     res.sendStatus(200)
 })
@@ -208,7 +257,6 @@ router.post('/fileInfo', authUser, async(req, res) => {
         _id: doc.uploadedBy
     })
     dirInfo = await getDirectoryPath(doc.directory)
-    console.log(dirInfo.path)
     info = {
         filename: doc.filename,
         description: doc.description,
