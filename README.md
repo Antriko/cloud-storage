@@ -4,7 +4,7 @@
 - Create .env from example
 - Edit domain in `install.sh`
 - Convert to executable `chmod +x install.sh` 
-- Execute `./install.sh` to gather SSL Certifications
+- Execute `./install.sh` to gather SSL Certifications - Ensure domain is redirected to host IP
 
 ## Starting up
 - Start up production compose file with `docker-compose -f docker-compose.prod.yml up --build`
